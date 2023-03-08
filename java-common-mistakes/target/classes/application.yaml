@@ -1,2 +1,13 @@
 server:
   port: 8081
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+    url: jdbc:mysql://8.130.14.158:3306/house?serverTimezone=Asia/Shanghai
+    username: root
+    password: Zjh997321
+    druid:
+      initial-size: 5
+      max-active: 10

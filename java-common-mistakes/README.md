@@ -61,3 +61,57 @@
   - connectTimeout: TCP 连接超时时间
   - MaximumPoolSize: 连接池中最大连接数
   - IdleTimeout: 连接空闲检测
+
+### 5. HTTP 调用问题: 超时,重试,并发
+- 配置连接超时和读取超时参数的学问：clientReadTimeout
+- Feign和Ribbon配合使用，你知道怎么配置超时吗？：feign and ribbon timeout
+- 你是否知道Ribbon会自动重试请求呢：ribbon retry
+- 并发限制了爬虫的抓取能力：route limit
+
+知识点
+- 参数配置
+  - TCP 连接超时 connectTimeOut
+    - 不要配置过长时间 1~5 s
+    - 理清连接的对象是谁
+  - Socket 数据读取超时 readTimeOut
+    - 读取超时并不意味着服务端断开了连接，需要根据实际情况排查
+    - 读取超时参数中的大部分时间是服务端处理业务的时间(因为网络正常的状态下，Socket读写以及数据传输时间很短)
+    - 读取超时参数不要配置的过长，会影响甚至拖垮上下游的业务
+- Feign 的使用
+  - 默认 ReadTimeOut 1s
+  - 要配置 Feign 的读取超时就必须同时配置 连接超时
+  - 可以根据 FeignClient 中的 name 属性 配置单独的超时时间
+  - Feign 的超时参数优先级高于 Ribbon
+- Ribbon 自动重试
+  - Ribbon 默认超时之后会进行一次重试操作(MaxAutoRetriesNextServer)
+  - 业务提供方要注意重试的幂等性，业务调用方要发送合适的 HTTP 请求(Get 无状态 , Post 有状态)
+- HTTP Client 默认并发请求
+  - 同一个域名的最大并发请求数 defaultMaxPerRoute = 2
+  - 整体请求并发数 maxTotal = 10
+
+
+### 6. Spring 事务机制
+- 小心Spring的事务可能没有生效：transaction proxy failed
+- 事务即便生效也不一定能回滚：transaction rollback failed
+- 请确认事务传播配置是否符合自己的业务逻辑：transaction propagation
+
+知识点
+- 事务失效的场景及解决办法
+  - @Transactional 标注在了 private/final标注的方法
+    - 新增加一个 service 去包裹事务方法，在原先的类中注入这个 service
+    - 将自己生成的单例对象注入到类内部
+  - 被代理的类直接调用了类内部的方法(this.xxx)
+    - 通过 AopContent.currentProxy() 获取自己的代理对象
+  - 被 @Transactional 标注的方法并未抛出异常
+    - 如需内部处理异常，TransactionAspectSupport.currentTransactionStatus().setRollbackOnly() 回滚
+    - 抛出的异常不是非受检异常时，事务也无法进行处理
+  - 多线程调用 -- 不同的线程获取的 connection 不同
+- 事务的传播机制
+  - REQUIRED: 上下文存在事务就加入,否则自己创建一个事务
+  - SUPPORTS: 上下文存在事务就加入,否则按照非事务执行
+  - MANDATORY: 上下文存在事务就抛出异常
+  - REQUIRES_NEW: 每次都创建新的事务,该事务执行完成后再执行上下文事务
+  - NOT_SUPPORTED: 上下文存在事务则挂起当前事务,新方法在没有事务的环境下执行
+  - NEVER: 上下文存在事务抛出异常,否则在无事务环境下执行
+  - NESTED: 上下文存在事务嵌套执行,不存在事务时创建事务执行
+[lombok 与 Aspectj](https://www.jianshu.com/p/5411e9efd577)
