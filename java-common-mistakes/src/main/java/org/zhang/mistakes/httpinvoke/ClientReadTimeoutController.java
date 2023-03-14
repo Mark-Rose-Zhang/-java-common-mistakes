@@ -18,7 +18,6 @@ import java.util.concurrent.TimeUnit;
 @RequestMapping("clientreadtimeout")
 @Slf4j
 public class ClientReadTimeoutController {
-
     private String getResponse(String url, int connectTimeout, int readTimeout) throws IOException {
         return Request.Get("http://localhost:8081/clientreadtimeout" + url)
                 .connectTimeout(connectTimeout)

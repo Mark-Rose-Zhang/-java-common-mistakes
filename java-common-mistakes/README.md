@@ -115,3 +115,58 @@
   - NEVER: 上下文存在事务抛出异常,否则在无事务环境下执行
   - NESTED: 上下文存在事务嵌套执行,不存在事务时创建事务执行
 [lombok 与 Aspectj](https://www.jianshu.com/p/5411e9efd577)
+
+#### 7. 数据库索引
+- innodb 存储数据 --- page + B+ Tree + page directory
+- 聚簇索引与二级索引
+- 考虑二级索引的空间成本，维护成本，回表查询成本 -- 不要过早的进行优化
+- 注意索引失效的问题
+- MySQL 是基于成本预估是否走索引的
+
+知识点
+- 索引覆盖，索引下推
+- explain 查询执行计划
+- optimizer_trace 查询优化器详细的语句优化以及成本预估流程
+
+
+#### 8. 判等问题
+- 注意equals和==的区别 包装类型不要使用 `==`
+- 实现一个equals没有这么简单
+- hashCode和equals要配对实现
+- 注意compareTo和equals的逻辑一致性
+- 小心Lombok生成代码的“坑”
+- 注意类加载器不同的问题
+
+知识点
+- equals 方法实现
+  - 先 `==`
+  - 再 判空
+  - 之后判 类型
+  - 最后判断字段
+- Lombok @Data 注解使用
+  - @EqualsAndHashCode 默认判断的是实例字段(非 transient，非父类字段)
+
+
+#### 9. 数值计算 精度,舍入,溢出
+- 危险”的Double -- 计算机二进制存储的精度损失
+- 考虑浮点数舍入和格式化的方式 -- 精度损失带来舍入问题
+- 用equals做判等，就一定是对的吗 -- BigDecimal 的 equals 方法比较的部分
+- 小心数值溢出问题 -- 数的表示范围有限(二进制位数有限) 导致数值溢出
+
+
+#### 10. List 的 '坑'
+- 使用Arrays.asList把数据转换为List的三个坑
+  - 不能直接使用 Arrays.asList 来转换基本类型数组 (利用Stream 装箱( boxed ) 之后再获取集合)
+  - Arrays.asList 返回的 List 不支持增删操作 (返回的是 Arrays 的 内部类)
+  - 对原始数组的修改会影响原有的那个 List
+- 使用List.subList进行切片操作居然会导致OOM -- 生成的 SubList共享原来的 List
+- 一定要让合适的数据结构做合适的事情
+  - 考虑时间换空间问题
+  - LinkedList 删除效率未必高于 ArrayList (不要迷信教科书的理论)
+
+#### 11. 空值
+
+
+
+知识点
+- (Arthas)[https://arthas.aliyun.com/]
