@@ -15,6 +15,9 @@ import java.util.TreeSet;
  *  2. 数据存储之前可以调用 stripTrailingZeros() 去掉多余的尾0
  */
 public class EqualsProblem {
+    public static void main(String[] args) {
+        System.out.println(new BigDecimal("0.0000").compareTo(new BigDecimal("0.000")));
+    }
 
     private static void wrong() {
         System.out.println(new BigDecimal("1.0").equals(new BigDecimal("1")));

@@ -24,6 +24,8 @@
 ### 3. 线程池使用
 
 - 线程池的声明需要手动进行：ThreadPool oom
+  - FixedThreadPool 声明了一个长度为 Integer.MAX_VALUE 的 LinkedBlockingQueue
+  - CachedThreadPool 声明了最多能够创建 Integer.MAX_VALUE 个线程
 - 线程池线程管理策略详解：ThreadPool oom
 - 务必确认清楚线程池本身是不是复用的：ThreadPool reuse ---- 不要只创建不复用
 - 需要仔细斟酌线程池的混用策略：ThreadPool mix-use --- 分析业务的轻重缓急，分析线程是I/O操作还是计算操作
@@ -164,9 +166,89 @@
   - 考虑时间换空间问题
   - LinkedList 删除效率未必高于 ArrayList (不要迷信教科书的理论)
 
-#### 11. 空值
-
+#### 11. 空值处理
+- 修复和定位恼人的空指针问题 -- 借助诊断器
+- POJO中属性的null到底代表了什么 -- 对于可能为 null 的数据用 Optional 接收
+- 小心数据库NULL字段的三个坑
+  - sum() 函数计算 null 与任何数据的和还为 null
+  - count(null) 表示0
+  - a=null 只是表示是不是和 null 相等 应该用 is null/is not null
 
 
 知识点
-- (Arthas)[https://arthas.aliyun.com/]
+- Java 诊断神器 (Arthas)[https://arthas.aliyun.com/]
+
+#### 12. 异常处理
+- 捕获和处理异常容易犯的错
+  - 不要用 AOP 进行全局的异常处理 -- 异常所表示的含义导致异常处理逻辑不同
+  - 不要生吞异常，确保异常栈信息被保存
+  - 抛出异常的时候，展示 **有意义** 的异常信息
+- 小心finally中的异常
+    - 要么内部处理掉finally的异常,要么利用 addSuppressed 追加异常栈信息
+    - 利用 try-witch-resource (资源实现 AutoClosable 接口) 提到 try-catch
+- 千万别把异常定义为静态变量
+    - 异常只会在初始化的时候保存异常栈信息
+- 提交线程池的任务出了异常会怎么样？
+  - execute 方法异常抛出会导致线程停止，没有利用线程池的可复用性 （尽量内部处理掉异常）
+  - submit 方法可以获取抛出的异常信息
+
+
+#### 13. 日志记录
+- 日志重复记录问题
+  - logger 配置继承关系导致日志重复记录 --- logger 内部的 appender 与 root 内部的不要重复
+  - 错误配置 LevelFilter 造成日志重复记录 --- 未设置 onMatch 和 onMissMatch
+- 异步日志引发性能问题
+  - 记录异步日志撑爆内存； --- queueSize 过大撑爆内存
+  - 记录异步日志出现日志丢失； --- queueSize 过小，队列满后会丢弃 <= info 的日志
+  - 记录异步日志出现阻塞; --- neverBlock 为 false 导致队列满后写入日志阻塞
+- 日志占位符引发性能问题
+  - {} 占位符不能通过延迟方式获取参数值 --- 利用 lambda 表达式代替 () -> function(..)
+
+知识点:
+- slf4j 门面原理:
+![img.png](img/slf4j.png)
+- logback 学习文档: https://logback.qos.ch/documentation.html
+
+
+#### 14. 文件IO
+- 文件读写需要确保字符编码一致
+- 使用Files类静态方法进行文件操作注意释放文件句柄
+- 注意读写文件要考虑设置缓冲区
+
+知识点
+- java.nio 
+- zero-copy
+
+#### 15. 序列化与反序列化 (暂放)
+
+#### 16. 日期类
+- 初始化日期时间
+  - new Date(),year(1970 + input) 和 month(0-11) ---> 利用 LocalDateTime 替代
+- “恼人”的时区问题
+  - Date 并无时区的概念,存储的是 UTC 时间(内部存储的是时间戳)
+  - 时间的保存方式
+    - 时间戳 --> 最佳
+    - 字面量 + 时区 (同一个字面量不同的时区,转换为的 Date 不同 / 格式化后错乱)
+- 日期时间格式化和解析
+  - SimpleDateFormat 问题
+    - 格式化字符串语意有误 yyyy / YYYY 
+    - 线程安全问题
+    - 对于解析字符串的强要求
+- 日期时间的计算
+  - 利用 LocalDate进行计算更方便并且功能更强大(利用 with 操作快速调节时间)
+
+#### 17. OOM 问题
+- 程序确实需要超出 JVM 配置的内存上限的内存
+- 出现内存泄漏问题
+- 框架参数配置不合理
+
+知识点
+生产环境开启OOM堆dump:
+```
+XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=. -XX:+PrintGCDateStamps -XX:+PrintGCDetails -Xloggc:gc.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=100M
+```
+
+#### 18. 反射,泛型,注解
+- 反射调用方法不是以传递参数类型决定的: 方法名+参数类型可以获取唯一的方法
+- 泛型经过类型擦除可能会多出桥接方法
+- 子类可以继承父类的标注在类上面的注解(注解本身标注了@Inherit)
